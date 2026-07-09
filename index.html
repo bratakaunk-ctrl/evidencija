@@ -200,7 +200,7 @@
                 <button class="btn" onclick="loginAdmin()">Prijavi se kao Admin</button>
             </div>
 
-            <button class="btn btn-guest" onclick="uletiKaoGost()">✨ Zavirite kao Gost<br><span style="font-size:0.75rem; text-transform:none; opacity:0.8; font-weight:normal;">(Pregled tabli i korišćenje kalkulatora)</span></button>
+            <button class="btn btn-guest" onclick="uletiKaoRadnika()">✨ Uđi kao Radnik (Gost)<br><span style="font-size:0.75rem; text-transform:none; opacity:0.8; font-weight:normal;">(Pregled cenovnika i korišćenje kalkulatora)</span></button>
         </div>
     </div>
 
@@ -219,14 +219,14 @@
             <div style="padding: 0 20px 15px 20px; color:var(--muted); font-size:0.9rem; border-bottom:1px solid var(--border);">
                 Pristup: <b id="display-user" style="color:var(--accent);"></b>
             </div>
-            <a href="#" onclick="nav('home')">🏠 Početna strana</a>
-            <a href="#" onclick="nav('obavestenja')">📢 Zvanična Obaveštenja</a>
+            <a href="#" onclick="nav('home')">🏠 Početna strana</a> <!-- Radnici sada mogu videti Home u meniju -->
+            <a href="#" onclick="nav('notes')">📝 Ekskluzivni Cenovnik</a>
             <a href="#" onclick="nav('calc-glavni')">🧮 Glavni Kalkulator Plata</a>
             <a href="#" onclick="nav('calc-of')">🔞 OF Podela (60/40)</a>
             <a href="#" onclick="nav('calc-nakit')">💎 Vrednost Nakita</a>
-            <a href="#" onclick="nav('zarada')">💰 Finansijski Izveštaj</a>
-            <a href="#" onclick="nav('agenti')">👥 Lista Agenata</a>
-            <a href="#" onclick="nav('uredjaji')">📱 Evidencija Telefona</a>
+            <a href="#" onclick="nav('zarada')" class="worker-hide">💰 Finansijski Izveštaj</a>
+            <a href="#" onclick="nav('agenti')" class="worker-hide">👥 Lista Agenata</a>
+            <a href="#" onclick="nav('uredjaji')" class="worker-hide">📱 Evidencija Telefona</a>
             <div class="sync-indicator" id="sync-timer">Učitavanje...</div>
         </nav>
 
@@ -237,16 +237,53 @@
             </div>
         </div>
 
-        <div id="obavestenja" class="page">
-            <h2>📢 Zvanična saopštenja</h2>
+        <div id="notes" class="page">
+            <h2>💋 Vrele OF Ponude & Cenovnik</h2>
             
-            <div class="card admin-target" style="margin-bottom: 20px;">
-                <label>Napiši novo globalno obaveštenje:</label>
-                <textarea id="novo-obavestenje" rows="3" placeholder="Ovu poruku će odmah videti svi gosti i radnici na sistemu..."></textarea>
-                <button class="btn" onclick="objaviObavestenje()">Objavi svima uživo</button>
+            <div id="notes-sadrzaj"></div>
+
+            <!-- Glavni statički račun na dnu -->
+            <div class="card" style="border: 2px dashed #ff4757; text-align: center; background: rgba(255, 71, 87, 0.05); margin-top: 25px;">
+                <label style="color: #ff4757; font-weight: bold; font-size: 0.95rem; letter-spacing: 0.5px;">💳 RAČUN ZA UPLATU NOVCA</label>
+                <div style="font-size: 1.25rem; font-weight: bold; letter-spacing: 1px; margin: 10px 0; color: #fff;" id="prikaz-glavnog-racuna">160600000236031410</div>
+                <button class="btn btn-small" onclick="kopirajRacun()" style="background:#ff4757; color:#fff; font-weight:bold;">📋 KOPIRAJ SAMO RAČUN</button>
             </div>
 
-            <div id="obavestenja-lista"></div>
+            <!-- Menadžment ponuda za Admina -->
+            <div class="card admin-target" style="margin-top: 30px; border-top: 2px solid var(--border); padding-top: 20px;">
+                <h3 style="color: var(--accent); margin-bottom: 15px; font-size: 1.1rem; display:flex; align-items:center; gap:6px;">⚙️ Uredi Cenovnik Uživo</h3>
+                
+                <div class="input-group">
+                    <label>Ponuda 1 (Naslov i Opis):</label>
+                    <input type="text" id="edit-p1-naslov" style="margin-bottom:6px;">
+                    <textarea id="edit-p1-opis" rows="2"></textarea>
+                    <label style="margin-top:4px;">Cena:</label>
+                    <input type="text" id="edit-p1-cena">
+                </div>
+                <hr style="border-color: var(--border); margin:15px 0;">
+                <div class="input-group">
+                    <label>Ponuda 2 (Naslov i Opis):</label>
+                    <input type="text" id="edit-p2-naslov" style="margin-bottom:6px;">
+                    <textarea id="edit-p2-opis" rows="2"></textarea>
+                    <label style="margin-top:4px;">Cena:</label>
+                    <input type="text" id="edit-p2-cena">
+                </div>
+                <hr style="border-color: var(--border); margin:15px 0;">
+                <div class="input-group">
+                    <label>Ponuda 3 (Naslov i Opis):</label>
+                    <input type="text" id="edit-p3-naslov" style="margin-bottom:6px;">
+                    <textarea id="edit-p3-opis" rows="2"></textarea>
+                    <label style="margin-top:4px;">Cena:</label>
+                    <input type="text" id="edit-p3-cena">
+                </div>
+                <hr style="border-color: var(--border); margin:15px 0;">
+                <div class="input-group">
+                    <label>Sistemski Žiro Račun:</label>
+                    <input type="text" id="edit-racun">
+                </div>
+                
+                <button class="btn" onclick="sacuvajCenovnik()">💾 Sinhronizuj izmene svima</button>
+            </div>
         </div>
 
         <div id="calc-glavni" class="page">
@@ -412,22 +449,20 @@
 
     <script>
         const KURS = 117.2;
-        // Koristimo javno decentralizovano skladište koje radi u SVIM tabovima, mobilnim telefonima i inkognito prozorima istovremeno
-        const CLOUD_STORAGE_KEY = 'firma_cloud_db_v2';
+        const CLOUD_STORAGE_KEY = 'firma_cloud_db_v3';
 
         let db = {
             transakcije: [],
             agenti: [],
             uredjaji: [],
-            obavestenja: []
+            cenovnik: null
         };
 
-        let trenutnaRola = 'guest'; // Može biti 'guest' ili 'admin'
+        let trenutnaRola = 'worker'; // Može biti 'worker' ili 'admin'
 
         window.onload = async () => {
             await povuciPodatkeSaMreze();
             
-            // Automatska sinhronizacija na svakih 5 sekundi kako bi gosti odmah videli izmene bez osvežavanja stranice
             setInterval(povuciPodatkeSaMreze, 5000);
 
             setTimeout(() => {
@@ -439,11 +474,10 @@
             }, 1200);
         };
 
-        // Funkcija za preuzimanje podataka sa mreže (Radi svuda, pa i u inkognitu)
         async function povuciPodatkeSaMreze() {
             try {
                 let r = await fetch(`https://api.jsonbin.io/v3/b/65f1ee22266cfc3fde9730c4/latest`, {
-                    headers: { 'X-Master-Key': '$2b$10$WpMhK1LwYhVfWh817P07AON7.wL6Z6C9D1iR61N8q1UqV7jEHeW6q' } // Bezbedno deljeno javno skladište
+                    headers: { 'X-Master-Key': '$2b$10$WpMhK1LwYhVfWh817P07AON7.wL6Z6C9D1iR61N8q1UqV7jEHeW6q' }
                 });
                 if(r.ok) {
                     let res = await r.json();
@@ -452,16 +486,30 @@
                     }
                 }
             } catch(e) {
-                // Ako mreža pukne, povuci lokalnu rezervu
                 let lokalno = localStorage.getItem(CLOUD_STORAGE_KEY);
                 if(lokalno) db = JSON.parse(lokalno);
             }
             
+            // Postavljanje podrazumevanih OF ponuda ako baza ne postoji (ažurirani rasponi)
+            if (!db.cenovnik) {
+                db.cenovnik = {
+                    ponuda1_naslov: "🔥 30 MINUTA HOT CHAT",
+                    ponuda1_opis: "Sve tvoje najluđe fantazije i skrivene želje postaju stvarnost... Prljav, brz i potpuno nezaboravan razgovor uživo 1 na 1 sa mnom bez ikakvih tabua! Ponuda važi samo večeras, javi se odmah! 💋",
+                    ponuda1_cena: "1000 - 3000",
+                    ponuda2_naslov: "📸 1 EKSKLUZIVNA PRIVATNA SLIKA",
+                    ponuda2_opis: "Samo za tvoje oči... Specijalan i ultra provokativan kadar kreiran u naletu strasti koji ne objavljujem apsolutno nigde drugde! Otključaj i uživaj u detaljima... 🌶️✨",
+                    ponuda2_cena: "2000 - 5000",
+                    ponuda3_naslov: "🎥 1 VRRELI PRIVATNI SNIMAK",
+                    ponuda3_opis: "Najbezobrazniji video u punoj visokoj rezoluciji koji ćeš puštati iznova i iznova... Sve ono o čemu tajno sanjaš spojeno u nekoliko minuta čistog greha. Garantovano podiže pritisak! 🔞🤤",
+                    ponuda3_cena: "3000 - 7000",
+                    racun: "160600000236031410"
+                };
+            }
+
             document.getElementById('sync-timer').innerText = 'Podaci ažurirani uživo 🟢';
             osveziTrenutnuStranu();
         }
 
-        // Slanje izmena na mrežu da bi svi odmah videli
         async function gurniPodatkeNaMrezu() {
             localStorage.setItem(CLOUD_STORAGE_KEY, JSON.stringify(db));
             let payload = {};
@@ -506,9 +554,9 @@
             }
         }
 
-        function uletiKaoGost() {
-            trenutnaRola = 'guest';
-            sessionStorage.setItem('firma_rola', 'guest');
+        function uletiKaoRadnika() {
+            trenutnaRola = 'worker';
+            sessionStorage.setItem('firma_rola', 'worker');
             pokreniAplikaciju();
         }
 
@@ -520,22 +568,31 @@
         function pokreniAplikaciju() {
             document.getElementById('auth-container').style.display = 'none';
             document.getElementById('app-container').style.display = 'block';
-            document.getElementById('display-user').innerText = trenutnaRola === 'admin' ? 'Ministar (Griga) 👑' : 'Gost Sistem 👁️';
+            document.getElementById('display-user').innerText = trenutnaRola === 'admin' ? 'Ministar (Griga) 👑' : 'Radnik Sistem 🛠️';
             primeniDozvole();
-            nav('home');
+            
+            nav('home'); // Sada svi po ulasku na sajt idu direktno na Home Screen
         }
 
         function primeniDozvole() {
             let isAdmin = trenutnaRola === 'admin';
+            
+            // Kontrola admin komandi
             document.querySelectorAll('.admin-target').forEach(el => {
                 if(isAdmin) el.classList.remove('admin-only');
                 else el.classList.add('admin-only');
+            });
+
+            // Kontrola vidljivosti menija za radnike
+            document.querySelectorAll('.worker-hide').forEach(el => {
+                if(isAdmin) el.style.setProperty('display', 'block', 'important');
+                else el.style.setProperty('display', 'none', 'important');
             });
         }
 
         function proveriAdmina() {
             if(trenutnaRola !== 'admin') {
-                alert("Ova opcija je zaključana za goste! Samo Ministar ima pristup.");
+                alert("Ova opcija je zaključana za radnike! Samo Ministar ima pristup upravljanju.");
                 return false;
             }
             return true;
@@ -550,14 +607,13 @@
             document.getElementById(pageId).classList.add('active');
             if(document.getElementById('side-menu').classList.contains('open')) toggleMenu();
             
-            // Izvršavanje skripti u zavisnosti od izabranog taba
             if(pageId === 'calc-glavni') { popuniChaterSelecte('calc-chater'); racunajGlavni(); }
             if(pageId === 'calc-of') { popuniChaterSelecte('of-chater'); racunajOF(); }
             if(pageId === 'calc-nakit') { racunajNakit(); }
             if(pageId === 'agenti') renderAgenti();
             if(pageId === 'uredjaji') renderUredjaji();
             if(pageId === 'zarada') renderZarada();
-            if(pageId === 'obavestenja') renderObavestenja();
+            if(pageId === 'notes') renderCenovnik();
             
             primeniDozvole();
         }
@@ -571,7 +627,7 @@
                 if(id === 'agenti') renderAgenti();
                 if(id === 'uredjaji') renderUredjaji();
                 if(id === 'zarada') renderZarada();
-                if(id === 'obavestenja') renderObavestenja();
+                if(id === 'notes') renderCenovnik();
             }
             primeniDozvole();
         }
@@ -596,6 +652,98 @@
             let staraVrednost = el.value;
             el.innerHTML = chateri.length ? chateri.map(c => `<option value="${c.id}">${c.ime} (${c.procenat || 20}%)</option>`).join('') : `<option value="">Nema unetih chatera</option>`;
             if(staraVrednost) el.value = staraVrednost;
+        }
+
+        // --- NOVI CENOVNIK PONUDA ---
+        function renderCenovnik() {
+            let div = document.getElementById('notes-sadrzaj');
+            if(!div || !db.cenovnik) return;
+
+            let c = db.cenovnik;
+            
+            if(document.getElementById('prikaz-glavnog-racuna')) {
+                document.getElementById('prikaz-glavnog-racuna').innerText = c.racun || "160600000236031410";
+            }
+
+            // Uklonjen je parseFloat kod ispisivanja cene kako bi ispisivao tekst (raspon 1000 - 3000)
+            div.innerHTML = `
+                <div class="card" style="border-left: 4px solid #ff4757; background: rgba(255, 71, 87, 0.02); margin-bottom: 15px;">
+                    <div style="font-weight: bold; font-size: 1.1rem; color: #ff4757; margin-bottom: 6px;">${c.ponuda1_naslov}</div>
+                    <p style="color: var(--muted); font-size: 0.95rem; margin-bottom: 12px; line-height: 1.4; font-style: italic;">"${c.ponuda1_opis}"</p>
+                    <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.2); padding: 8px 12px; border-radius: 8px;">
+                        <span style="color: var(--success); font-weight: bold; font-size: 1.15rem;">Cena: ${c.ponuda1_cena} RSD</span>
+                        <button class="btn btn-small" onclick="kopirajRacun()" style="margin: 0; background: var(--accent); color:#000;">📋 KOPIRAJ RAČUN</button>
+                    </div>
+                </div>
+
+                <div class="card" style="border-left: 4px solid #eccc68; background: rgba(236, 204, 104, 0.02); margin-bottom: 15px;">
+                    <div style="font-weight: bold; font-size: 1.1rem; color: #eccc68; margin-bottom: 6px;">${c.ponuda2_naslov}</div>
+                    <p style="color: var(--muted); font-size: 0.95rem; margin-bottom: 12px; line-height: 1.4; font-style: italic;">"${c.ponuda2_opis}"</p>
+                    <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.2); padding: 8px 12px; border-radius: 8px;">
+                        <span style="color: var(--success); font-weight: bold; font-size: 1.15rem;">Cena: ${c.ponuda2_cena} RSD</span>
+                        <button class="btn btn-small" onclick="kopirajRacun()" style="margin: 0; background: var(--accent); color:#000;">📋 KOPIRAJ RAČUN</button>
+                    </div>
+                </div>
+
+                <div class="card" style="border-left: 4px solid #a55eea; background: rgba(165, 94, 234, 0.02); margin-bottom: 15px;">
+                    <div style="font-weight: bold; font-size: 1.1rem; color: #a55eea; margin-bottom: 6px;">${c.ponuda3_naslov}</div>
+                    <p style="color: var(--muted); font-size: 0.95rem; margin-bottom: 12px; line-height: 1.4; font-style: italic;">"${c.ponuda3_opis}"</p>
+                    <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.2); padding: 8px 12px; border-radius: 8px;">
+                        <span style="color: var(--success); font-weight: bold; font-size: 1.15rem;">Cena: ${c.ponuda3_cena} RSD</span>
+                        <button class="btn btn-small" onclick="kopirajRacun()" style="margin: 0; background: var(--accent); color:#000;">📋 KOPIRAJ RAČUN</button>
+                    </div>
+                </div>
+            `;
+
+            // Ukoliko je admin aktiviran, popuni inpute u donjem menadžment delu
+            if(trenutnaRola === 'admin' && document.getElementById('edit-p1-naslov')) {
+                if(!document.getElementById('edit-p1-naslov').value) {
+                    document.getElementById('edit-p1-naslov').value = c.ponuda1_naslov;
+                    document.getElementById('edit-p1-opis').value = c.ponuda1_opis;
+                    document.getElementById('edit-p1-cena').value = c.ponuda1_cena;
+                    document.getElementById('edit-p2-naslov').value = c.ponuda2_naslov;
+                    document.getElementById('edit-p2-opis').value = c.ponuda2_opis;
+                    document.getElementById('edit-p2-cena').value = c.ponuda2_cena;
+                    document.getElementById('edit-p3-naslov').value = c.ponuda3_naslov;
+                    document.getElementById('edit-p3-opis').value = c.ponuda3_opis;
+                    document.getElementById('edit-p3-cena').value = c.ponuda3_cena;
+                    document.getElementById('edit-racun').value = c.racun;
+                }
+            }
+        }
+
+        async function sacuvajCenovnik() {
+            if(!proveriAdmina()) return;
+            db.cenovnik = {
+                ponuda1_naslov: document.getElementById('edit-p1-naslov').value.trim(),
+                ponuda1_opis: document.getElementById('edit-p1-opis').value.trim(),
+                ponuda1_cena: document.getElementById('edit-p1-cena').value.trim(),
+                ponuda2_naslov: document.getElementById('edit-p2-naslov').value.trim(),
+                ponuda2_opis: document.getElementById('edit-p2-opis').value.trim(),
+                ponuda2_cena: document.getElementById('edit-p2-cena').value.trim(),
+                ponuda3_naslov: document.getElementById('edit-p3-naslov').value.trim(),
+                ponuda3_opis: document.getElementById('edit-p3-opis').value.trim(),
+                ponuda3_cena: document.getElementById('edit-p3-cena').value.trim(),
+                racun: document.getElementById('edit-racun').value.trim()
+            };
+            await gurniPodatkeNaMrezu();
+            alert("Cenovnik uspešno sačuvan i ažuriran na mreži!");
+            renderCenovnik();
+        }
+
+        function kopirajRacun() {
+            let racun = (db.cenovnik && db.cenovnik.racun) ? db.cenovnik.racun : "160600000236031410";
+            navigator.clipboard.writeText(racun).then(() => {
+                alert("Uspešno kopiran samo broj računa:\n" + racun);
+            }).catch(() => {
+                let el = document.createElement('textarea');
+                el.value = racun;
+                document.body.appendChild(el);
+                el.select();
+                document.execCommand('copy');
+                document.body.removeChild(el);
+                alert("Uspešno kopiran samo broj računa:\n" + racun);
+            });
         }
 
         // --- KALKULACIJE ---
@@ -703,49 +851,6 @@
             } else { document.getElementById('nakit-rezultat').style.display = 'none'; }
         }
 
-        // --- OBAVESTENJA (LIVE SA MREŽE) ---
-        function renderObavestenja() {
-            let div = document.getElementById('obavestenja-lista');
-            if(!div) return;
-            let isAdmin = trenutnaRola === 'admin';
-            
-            if(!db.obavestenja || db.obavestenja.length === 0) {
-                div.innerHTML = `<p style="color:var(--muted); text-align:center; padding:30px;">Trenutno nema objavljenih obaveštenja.</p>`;
-                return;
-            }
-            div.innerHTML = db.obavestenja.slice().reverse().map(o => `
-                <div class="card" style="border-left:4px solid var(--accent); background: rgba(35,35,35,0.7);">
-                    <div style="font-size:0.75rem; color:var(--muted); margin-bottom:6px; display:flex; justify-content:space-between;">
-                        <span>📢 KANALE FIRME</span>
-                        <span>${new Date(o.vreme).toLocaleString('sr-RS')}</span>
-                    </div>
-                    <div style="font-size:1.05rem; white-space:pre-wrap; line-height:1.4; color:#fff;">${o.tekst}</div>
-                    ${isAdmin ? `<button class="btn btn-danger btn-small" style="margin-top:12px; padding:4px 10px;" onclick="obrisiObavestenje(${o.id})">Ukloni</button>` : ''}
-                </div>
-            `).join('');
-        }
-
-        async function objaviObavestenje() {
-            if(!proveriAdmina()) return;
-            let tekst = document.getElementById('novo-obavestenje').value.trim();
-            if(!tekst) return alert("Upiši tekst obaveštenja!");
-            
-            if(!db.obavestenja) db.obavestenja = [];
-            db.obavestenja.push({ id: Date.now(), vreme: new Date().toISOString(), tekst: tekst });
-            await gurniPodatkeNaMrezu();
-            document.getElementById('novo-obavestenje').value = '';
-            renderObavestenja();
-        }
-
-        async function obrisiObavestenje(id) {
-            if(!proveriAdmina()) return;
-            if(confirm("Ukloniti saopštenje sa mreže?")) {
-                db.obavestenja = db.obavestenja.filter(o => o.id !== id); 
-                await gurniPodatkeNaMrezu();
-                renderObavestenja();
-            }
-        }
-
         // --- ZARADA I STATISTIKA ---
         let chartInstanca = null;
         function renderZarada() {
@@ -800,7 +905,7 @@
             }
         }
 
-        // --- LISTA AGENATA (GOSTI VIDE SVE PROMENE) ---
+        // --- LISTA AGENATA ---
         function renderAgenti() {
             let div = document.getElementById('agenti-lista');
             if(!div) return;
@@ -917,7 +1022,7 @@
         async function resetujSve() {
             if(!proveriAdmina()) return;
             if(confirm("⚠️ Pažnja: Brišete apsolutno sve sa mreže! Nastaviti?")) {
-                db = { transakcije: [], agenti: [], uredjaji: [], obavestenja: [] };
+                db = { transakcije: [], agenti: [], uredjaji: [], cenovnik: null };
                 await gurniPodatkeNaMrezu();
                 location.reload();
             }
