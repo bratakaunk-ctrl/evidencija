@@ -219,7 +219,11 @@
             <div style="padding: 0 20px 15px 20px; color:var(--muted); font-size:0.9rem; border-bottom:1px solid var(--border);">
                 Pristup: <b id="display-user" style="color:var(--accent);"></b>
             </div>
-            <a href="#" onclick="nav('home')">🏠 Početna strana</a> <!-- Radnici sada mogu videti Home u meniju -->
+            
+            <!-- DUGME ZA ČUVANJE KOJE SI TRAŽIO -->
+            <a href="#" onclick="rucnoSacuvaj()" class="admin-target" style="color: var(--success); font-weight: bold;">💾 Sačuvaj sve podatke</a>
+            
+            <a href="#" onclick="nav('home')">🏠 Početna strana</a>
             <a href="#" onclick="nav('notes')">📝 Ekskluzivni Cenovnik</a>
             <a href="#" onclick="nav('calc-glavni')">🧮 Glavni Kalkulator Plata</a>
             <a href="#" onclick="nav('calc-of')">🔞 OF Podela (60/40)</a>
@@ -227,7 +231,7 @@
             <a href="#" onclick="nav('zarada')" class="worker-hide">💰 Finansijski Izveštaj</a>
             <a href="#" onclick="nav('agenti')" class="worker-hide">👥 Lista Agenata</a>
             <a href="#" onclick="nav('uredjaji')" class="worker-hide">📱 Evidencija Telefona</a>
-            <div class="sync-indicator" id="sync-timer">Učitavanje...</div>
+            <div class="sync-indicator" id="sync-timer">Podaci sačuvani lokalno 🟢</div>
         </nav>
 
         <div id="home" class="page active">
@@ -242,14 +246,12 @@
             
             <div id="notes-sadrzaj"></div>
 
-            <!-- Glavni statički račun na dnu -->
             <div class="card" style="border: 2px dashed #ff4757; text-align: center; background: rgba(255, 71, 87, 0.05); margin-top: 25px;">
                 <label style="color: #ff4757; font-weight: bold; font-size: 0.95rem; letter-spacing: 0.5px;">💳 RAČUN ZA UPLATU NOVCA</label>
                 <div style="font-size: 1.25rem; font-weight: bold; letter-spacing: 1px; margin: 10px 0; color: #fff;" id="prikaz-glavnog-racuna">160600000236031410</div>
                 <button class="btn btn-small" onclick="kopirajRacun()" style="background:#ff4757; color:#fff; font-weight:bold;">📋 KOPIRAJ SAMO RAČUN</button>
             </div>
 
-            <!-- Menadžment ponuda za Admina -->
             <div class="card admin-target" style="margin-top: 30px; border-top: 2px solid var(--border); padding-top: 20px;">
                 <h3 style="color: var(--accent); margin-bottom: 15px; font-size: 1.1rem; display:flex; align-items:center; gap:6px;">⚙️ Uredi Cenovnik Uživo</h3>
                 
@@ -282,7 +284,7 @@
                     <input type="text" id="edit-racun">
                 </div>
                 
-                <button class="btn" onclick="sacuvajCenovnik()">💾 Sinhronizuj izmene svima</button>
+                <button class="btn" onclick="sacuvajCenovnik()">💾 Sinhronizuj izmene</button>
             </div>
         </div>
 
@@ -386,7 +388,7 @@
     <div id="modal-settings" class="modal-overlay">
         <div class="modal">
             <h2>Sistem Panel</h2>
-            <p style="color: var(--muted); font-size: 0.85rem; margin: 15px 0;">Brisanje kompletne mrežne baze podataka i reset parametara.</p>
+            <p style="color: var(--muted); font-size: 0.85rem; margin: 15px 0;">Brisanje kompletne baze podataka i reset parametara.</p>
             <button class="btn btn-danger" onclick="resetujSve()">⚠️ RESETUJ SVE</button>
             <button class="btn btn-outline" style="border:none; color:var(--muted);" onclick="zatvoriModal('settings')">Zatvori</button>
         </div>
@@ -442,14 +444,14 @@
                     <option value="Reserved">Reserved</option>
                 </select>
             </div>
-            <button class="btn" onclick="sacuvajUredjaj()">Sačuvaj</button>
+            <button class="btn" onclick="dodajNoviUredjaj()">Sačuvaj</button>
             <button class="btn btn-outline" style="border:none; color:var(--muted);" onclick="zatvoriModal('uredjaj')">Odustani</button>
         </div>
     </div>
 
     <script>
         const KURS = 117.2;
-        const CLOUD_STORAGE_KEY = 'firma_cloud_db_v3';
+        const LOKALNA_BAZA_KLJUC = 'firma_sistem_baza_v1';
 
         let db = {
             transakcije: [],
@@ -458,12 +460,10 @@
             cenovnik: null
         };
 
-        let trenutnaRola = 'worker'; // Može biti 'worker' ili 'admin'
+        let trenutnaRola = 'worker';
 
-        window.onload = async () => {
-            await povuciPodatkeSaMreze();
-            
-            setInterval(povuciPodatkeSaMreze, 5000);
+        window.onload = () => {
+            ucitajPodatke();
 
             setTimeout(() => {
                 document.getElementById('loading-screen').style.opacity = '0';
@@ -474,23 +474,19 @@
             }, 1200);
         };
 
-        async function povuciPodatkeSaMreze() {
-            try {
-                let r = await fetch(`https://api.jsonbin.io/v3/b/65f1ee22266cfc3fde9730c4/latest`, {
-                    headers: { 'X-Master-Key': '$2b$10$WpMhK1LwYhVfWh817P07AON7.wL6Z6C9D1iR61N8q1UqV7jEHeW6q' }
-                });
-                if(r.ok) {
-                    let res = await r.json();
-                    if(res.record && res.record[CLOUD_STORAGE_KEY]) {
-                        db = res.record[CLOUD_STORAGE_KEY];
-                    }
-                }
-            } catch(e) {
-                let lokalno = localStorage.getItem(CLOUD_STORAGE_KEY);
-                if(lokalno) db = JSON.parse(lokalno);
+        function ucitajPodatke() {
+            let lokalniPodaci = localStorage.getItem(LOKALNA_BAZA_KLJUC);
+            
+            if (lokalniPodaci) {
+                db = JSON.parse(lokalniPodaci);
             }
             
-            // Postavljanje podrazumevanih OF ponuda ako baza ne postoji (ažurirani rasponi)
+            // Inicijalizuj prazne nizove ako ih nema
+            if (!db.transakcije) db.transakcije = [];
+            if (!db.agenti) db.agenti = [];
+            if (!db.uredjaji) db.uredjaji = [];
+
+            // Postavljanje podrazumevanih OF ponuda
             if (!db.cenovnik) {
                 db.cenovnik = {
                     ponuda1_naslov: "🔥 30 MINUTA HOT CHAT",
@@ -506,24 +502,23 @@
                 };
             }
 
-            document.getElementById('sync-timer').innerText = 'Podaci ažurirani uživo 🟢';
+            document.getElementById('sync-timer').innerText = 'Podaci ucitani 🟢';
             osveziTrenutnuStranu();
         }
 
-        async function gurniPodatkeNaMrezu() {
-            localStorage.setItem(CLOUD_STORAGE_KEY, JSON.stringify(db));
-            let payload = {};
-            payload[CLOUD_STORAGE_KEY] = db;
-            try {
-                await fetch(`https://api.jsonbin.io/v3/b/65f1ee22266cfc3fde9730c4`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-Master-Key': '$2b$10$WpMhK1LwYhVfWh817P07AON7.wL6Z6C9D1iR61N8q1UqV7jEHeW6q'
-                    },
-                    body: JSON.stringify(payload)
-                });
-            } catch(e) { console.log("Greška pri slanju na mrežu"); }
+        // Glavna funkcija za čuvanje umesto JSONBina
+        function sacuvajPodatke() {
+            localStorage.setItem(LOKALNA_BAZA_KLJUC, JSON.stringify(db));
+            let timerEl = document.getElementById('sync-timer');
+            timerEl.innerText = 'Sačuvano! ✅';
+            setTimeout(() => { timerEl.innerText = 'Podaci sačuvani lokalno 🟢'; }, 2000);
+        }
+
+        // Ručno čuvanje preko dugmeta
+        function rucnoSacuvaj() {
+            sacuvajPodatke();
+            alert("Svi tvoji podaci su uspešno sačuvani i biće tu kad se ponovo uloguješ!");
+            toggleMenu();
         }
 
         function proveriSesiju() {
@@ -571,19 +566,17 @@
             document.getElementById('display-user').innerText = trenutnaRola === 'admin' ? 'Ministar (Griga) 👑' : 'Radnik Sistem 🛠️';
             primeniDozvole();
             
-            nav('home'); // Sada svi po ulasku na sajt idu direktno na Home Screen
+            nav('home');
         }
 
         function primeniDozvole() {
             let isAdmin = trenutnaRola === 'admin';
             
-            // Kontrola admin komandi
             document.querySelectorAll('.admin-target').forEach(el => {
                 if(isAdmin) el.classList.remove('admin-only');
                 else el.classList.add('admin-only');
             });
 
-            // Kontrola vidljivosti menija za radnike
             document.querySelectorAll('.worker-hide').forEach(el => {
                 if(isAdmin) el.style.setProperty('display', 'block', 'important');
                 else el.style.setProperty('display', 'none', 'important');
@@ -665,7 +658,6 @@
                 document.getElementById('prikaz-glavnog-racuna').innerText = c.racun || "160600000236031410";
             }
 
-            // Uklonjen je parseFloat kod ispisivanja cene kako bi ispisivao tekst (raspon 1000 - 3000)
             div.innerHTML = `
                 <div class="card" style="border-left: 4px solid #ff4757; background: rgba(255, 71, 87, 0.02); margin-bottom: 15px;">
                     <div style="font-weight: bold; font-size: 1.1rem; color: #ff4757; margin-bottom: 6px;">${c.ponuda1_naslov}</div>
@@ -695,7 +687,6 @@
                 </div>
             `;
 
-            // Ukoliko je admin aktiviran, popuni inpute u donjem menadžment delu
             if(trenutnaRola === 'admin' && document.getElementById('edit-p1-naslov')) {
                 if(!document.getElementById('edit-p1-naslov').value) {
                     document.getElementById('edit-p1-naslov').value = c.ponuda1_naslov;
@@ -712,7 +703,7 @@
             }
         }
 
-        async function sacuvajCenovnik() {
+        function sacuvajCenovnik() {
             if(!proveriAdmina()) return;
             db.cenovnik = {
                 ponuda1_naslov: document.getElementById('edit-p1-naslov').value.trim(),
@@ -726,8 +717,8 @@
                 ponuda3_cena: document.getElementById('edit-p3-cena').value.trim(),
                 racun: document.getElementById('edit-racun').value.trim()
             };
-            await gurniPodatkeNaMrezu();
-            alert("Cenovnik uspešno sačuvan i ažuriran na mreži!");
+            sacuvajPodatke();
+            alert("Cenovnik uspešno sačuvan!");
             renderCenovnik();
         }
 
@@ -790,7 +781,7 @@
             return { chater, ministar, kolega1, kolega2 };
         }
 
-        async function dodajPlatu() {
+        function dodajPlatu() {
             if(!proveriAdmina()) return;
             if(!trenutniObracun || trenutniObracun.iznos <= 0) return alert("Unesi realan iznos!");
             
@@ -801,8 +792,8 @@
                 let agent = db.agenti.find(x => x.id == trenutniObracun.chaterId);
                 if (agent) { agent.zarada += trenutniObracun.chater; if (trenutniObracun.bonus) agent.zvezdice = (agent.zvezdice || 0) + 1; }
             }
-            await gurniPodatkeNaMrezu();
-            alert("Finansije uspešno ažurirane na mreži!");
+            sacuvajPodatke();
+            alert("Finansije uspešno sačuvane!");
             document.getElementById('calc-iznos').value = '';
             trenutniObracun = null;
             racunajGlavni();
@@ -821,7 +812,7 @@
             } else { document.getElementById('of-rezultat').style.display = 'none'; }
         }
 
-        async function proknjiziOF() {
+        function proknjiziOF() {
             if(!proveriAdmina()) return;
             let iznos = parseFloat(document.getElementById('of-iznos').value) || 0; 
             let chId = document.getElementById('of-chater').value;
@@ -832,8 +823,8 @@
             let ch = db.agenti.find(a => a.id == chId); 
             if(ch) ch.zarada += iznos * 0.40;
             
-            await gurniPodatkeNaMrezu();
-            alert("OF podela uspešno proknjižena!");
+            sacuvajPodatke();
+            alert("OF podela uspešno sačuvana!");
             document.getElementById('of-iznos').value = '';
             racunajOF();
         }
@@ -895,11 +886,11 @@
             chartInstanca = new Chart(ctx, { type: 'bar', data: { labels: labele.length ? labele : ['Prazno'], datasets: [{ label: 'Zarada Uprave (Zadnjih 7 unosa)', data: podaci, backgroundColor: '#d4af37' }] }, options: { responsive: true } });
         }
 
-        async function obrisiTransakciju(id) {
+        function obrisiTransakciju(id) {
             if(!proveriAdmina()) return;
             if(confirm("Ukloniti stavku iz baze?")) { 
                 db.transakcije = db.transakcije.filter(t => t.id !== id); 
-                await gurniPodatkeNaMrezu(); 
+                sacuvajPodatke(); 
                 renderZarada(); 
                 iscrtajGrafikon(); 
             }
@@ -935,7 +926,7 @@
                 </div>`}).join('');
         }
 
-        async function dodajKarton(id) {
+        function dodajKarton(id) {
             if(!proveriAdmina()) return;
             let a = db.agenti.find(x => x.id === id);
             if(!a) return;
@@ -944,30 +935,30 @@
                 alert(`Agent ${a.ime} je skupio 3 žuta kartona i automatski je uklonjen!`); 
                 db.agenti = db.agenti.filter(x => x.id !== id); 
             }
-            await gurniPodatkeNaMrezu(); 
+            sacuvajPodatke(); 
             renderAgenti();
         }
 
-        async function platiAgenta(id) { 
+        function platiAgenta(id) { 
             if(!proveriAdmina()) return; 
             let iznos = prompt("Unesi vanrednu isplatu u RSD:"); 
             if(iznos && !isNaN(iznos)) { 
                 db.agenti.find(x => x.id === id).zarada += parseFloat(iznos); 
-                await gurniPodatkeNaMrezu(); 
+                sacuvajPodatke(); 
                 renderAgenti(); 
             } 
         }
         
-        async function obrisiAgenta(id) { 
+        function obrisiAgenta(id) { 
             if(!proveriAdmina()) return; 
             if(confirm("Izbrisati agenta?")) { 
                 db.agenti = db.agenti.filter(x => x.id !== id); 
-                await gurniPodatkeNaMrezu(); 
+                sacuvajPodatke(); 
                 renderAgenti(); 
             } 
         }
 
-        async function sacuvajAgenta() {
+        function sacuvajAgenta() {
             if(!proveriAdmina()) return;
             let ime = document.getElementById('novi-agent-ime').value.trim();
             let uloga = document.getElementById('novi-agent-uloga').value;
@@ -976,7 +967,8 @@
             
             if(!db.agenti) db.agenti = [];
             db.agenti.push({ id: Date.now(), ime, uloga, zarada: 0, kartoni: 0, procenat: p, zvezdice: 0 });
-            await gurniPodatkeNaMrezu(); 
+            
+            sacuvajPodatke(); 
             zatvoriModal('agent'); 
             document.getElementById('novi-agent-ime').value = ''; 
             renderAgenti();
@@ -1009,21 +1001,37 @@
             `).join('');
         }
 
-        async function setUredjaj(id, p, v) { if(!proveriAdmina()) return; db.uredjaji.find(x => x.id === id)[p] = v; await gurniPodatkeNaMrezu(); renderUredjaji(); }
-        async function obrisiUredjaj(id) { if(!proveriAdmina()) return; if(confirm("Obrisati telefon?")) { db.uredjaji = db.uredjaji.filter(x => x.id !== id); await gurniPodatkeNaMrezu(); renderUredjaji(); } }
-        async function sacuvajUredjaj() {
+        function setUredjaj(id, p, v) { 
+            if(!proveriAdmina()) return; 
+            db.uredjaji.find(x => x.id === id)[p] = v; 
+            sacuvajPodatke(); 
+            renderUredjaji(); 
+        }
+        function obrisiUredjaj(id) { 
+            if(!proveriAdmina()) return; 
+            if(confirm("Obrisati telefon?")) { 
+                db.uredjaji = db.uredjaji.filter(x => x.id !== id); 
+                sacuvajPodatke(); 
+                renderUredjaji(); 
+            } 
+        }
+        function dodajNoviUredjaj() {
             if(!proveriAdmina()) return;
-            let ime = document.getElementById('novi-uredjaj-ime').value.trim(); if(!ime) return;
+            let ime = document.getElementById('novi-uredjaj-ime').value.trim(); 
+            if(!ime) return;
             if(!db.uredjaji) db.uredjaji = [];
             db.uredjaji.push({ id: Date.now(), ime, tip: document.getElementById('novi-uredjaj-tip').value, status: document.getElementById('novi-uredjaj-status').value });
-            await gurniPodatkeNaMrezu(); zatvoriModal('uredjaj'); document.getElementById('novi-uredjaj-ime').value = ''; renderUredjaji();
+            sacuvajPodatke(); 
+            zatvoriModal('uredjaj'); 
+            document.getElementById('novi-uredjaj-ime').value = ''; 
+            renderUredjaji();
         }
 
-        async function resetujSve() {
+        function resetujSve() {
             if(!proveriAdmina()) return;
-            if(confirm("⚠️ Pažnja: Brišete apsolutno sve sa mreže! Nastaviti?")) {
+            if(confirm("⚠️ Pažnja: Brišete apsolutno sve iz lokalne baze! Nastaviti?")) {
                 db = { transakcije: [], agenti: [], uredjaji: [], cenovnik: null };
-                await gurniPodatkeNaMrezu();
+                sacuvajPodatke();
                 location.reload();
             }
         }
