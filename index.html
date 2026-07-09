@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>FIRMA | EVIDENCIJA</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Old American Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Rye&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg: #121212;
+            --card-bg: #1e1e1e;
+            --text: #ffffff;
+            --muted: #a0a0a0;
+            --accent: #d4af37;
+            --danger: #ff4757;
+            --success: #2ed573;
+            --border: #333333;
+        }
+
+        * { 
+            box-sizing: border-box; 
+            margin: 0; 
+            padding: 0; 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body { 
+            background: linear-gradient(-45deg, #0d0d0d, #1a1a1a, #262626, #121212);
+            background-size: 400% 400%;
+            animation: smoothBg 15s ease infinite;
+            color: var(--text); 
+            padding-bottom: 80px; 
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        @keyframes smoothBg {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* Loading Screen */
+        #loading-screen {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg);
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            transition: opacity 0.4s ease, visibility 0.4s;
+        }
+        .spinner {
+            width: 45px; height: 45px;
+            border: 3px solid var(--border);
+            border-top: 3px solid var(--accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 15px;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* Auth */
+        #auth-container {
+            display: none;
+            padding: 20px;
+            max-width: 400px;
+            margin: 60px auto 0 auto;
+            animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        @keyframes slideUp {
+            from { transform: translateY(30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        #app-container { display: none; }
+
+        /* Header & Nav */
+        header { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; background: rgba(30, 30, 30, 0.85); backdrop-filter: blur(10px); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100; }
+        .logo { font-size: 1.1rem; font-weight: 700; color: var(--accent); letter-spacing: 1px; font-family: 'Rye', serif; }
+        .hamburger, .settings-btn, .logout-btn { font-size: 1.4rem; background: none; border: none; color: var(--text); cursor: pointer; transition: transform 0.2s; }
+        .hamburger:active { transform: scale(0.9); }
+        .settings-btn { color: var(--muted); }
+        .logout-btn { font-size: 1.2rem; color: var(--danger); margin-right: 10px; }
+
+        #side-menu { position: fixed; top: 0; right: -260px; width: 260px; height: 100vh; background: var(--card-bg); box-shadow: -5px 0 15px rgba(0,0,0,0.6); transition: right 0.4s cubic-bezier(0.16, 1, 0.3, 1); z-index: 200; padding-top: 60px; }
+        #side-menu.open { right: 0; }
+        .close-menu { position: absolute; top: 15px; right: 20px; font-size: 2rem; background: none; border: none; color: var(--text); cursor: pointer; }
+        #side-menu a { display: block; padding: 16px 20px; color: var(--text); text-decoration: none; font-size: 1.05rem; border-bottom: 1px solid var(--border); transition: background 0.2s; }
+        #side-menu a:active { background: var(--border); }
+
+        /* Pages */
+        .page { display: none; padding: 20px; max-width: 600px; margin: 0 auto; animation: fadeIn 0.35s ease-out; }
+        .page.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.99); } to { opacity: 1; transform: scale(1); } }
+
+        h2 { font-size: 1.25rem; margin-bottom: 15px; color: var(--accent); border-bottom: 1px solid var(--border); padding-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+        .auth-title { text-align: center; margin-bottom: 25px; border: none; font-size: 1.7rem; color: var(--text); }
+
+        /* POCETNA STRANA RE DIZAJN */
+        .brand-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 30px 10px;
+            margin-bottom: 10px;
+        }
+        .brand-title {
+            font-family: 'Rye', serif;
+            font-size: 3.8rem;
+            color: var(--accent);
+            text-align: center;
+            margin-bottom: 20px;
+            letter-spacing: 5px;
+            text-shadow: 3px 4px 8px rgba(0,0,0,0.9);
+            border: none;
+        }
+        .brand-img {
+            display: block;
+            width: 170px;
+            height: auto;
+            border-radius: 14px;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.7);
+            border: 1px solid rgba(214, 175, 87, 0.2);
+            transition: transform 0.3s ease;
+        }
+        .brand-img:hover {
+            transform: scale(1.03);
+        }
+
+        /* Forms & Cards */
+        .card { background: rgba(30, 30, 30, 0.65); backdrop-filter: blur(8px); padding: 18px; border-radius: 12px; margin-bottom: 15px; border: 1px solid var(--border); }
+        .input-group { margin-bottom: 15px; }
+        label { display: block; font-size: 0.85rem; color: var(--muted); margin-bottom: 6px; font-weight: 500; }
+        input, select, textarea { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: 1rem; transition: border-color 0.2s, box-shadow 0.2s; }
+        input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 8px rgba(212, 175, 55, 0.25); }
+        .eur-val { font-size: 0.85rem; color: var(--accent); margin-top: 5px; text-align: right; font-weight: bold; }
+
+        /* Buttons */
+        .btn { width: 100%; padding: 14px; border: none; border-radius: 8px; background: var(--accent); color: #000; font-size: 1rem; font-weight: bold; cursor: pointer; margin-top: 10px; transition: all 0.2s ease; }
+        .btn:active { transform: scale(0.98); opacity: 0.9; }
+        .btn-outline { background: transparent; border: 1px solid var(--accent); color: var(--accent); }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-small { width: auto; padding: 6px 12px; font-size: 0.8rem; margin-top: 0; }
+
+        /* Results */
+        .result-box { background: rgba(18, 18, 18, 0.85); padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid var(--accent); }
+        .result-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.95rem; align-items: center; }
+        .result-row:last-child { margin-bottom: 0; }
+        .highlight { color: var(--accent); font-weight: bold; }
+
+        /* Lists & Elements */
+        .list-item { background: var(--card-bg); padding: 15px; border-radius: 10px; margin-bottom: 10px; border: 1px solid var(--border); }
+        .item-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .item-title { font-size: 1.05rem; font-weight: bold; display: flex; align-items: center; gap: 8px; }
+        .action-row { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 10px; }
+        .toggle-group { display: flex; gap: 5px; margin-bottom: 10px; }
+        .toggle-btn { flex: 1; padding: 8px; text-align: center; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; font-size: 0.85rem; color: var(--text); }
+        .toggle-btn.active { background: var(--accent); color: #000; font-weight: bold; border-color: var(--accent); }
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
+        .stat-card { background: var(--card-bg); padding: 15px; border-radius: 8px; text-align: center; border: 1px solid var(--border); }
+        .stat-card h3 { font-size: 1.1rem; color: var(--success); margin: 5px 0; }
+
+        .fab { position: fixed; bottom: 20px; right: 20px; width: 55px; height: 55px; background: var(--accent); color: #000; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 2rem; box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3); border: none; z-index: 90; cursor: pointer; }
+        
+        /* Modals */
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(3px); display: none; justify-content: center; align-items: center; z-index: 300; padding: 20px; opacity: 0; transition: opacity 0.25s; }
+        .modal-overlay.open { display: flex; opacity: 1; }
+        .modal { background: var(--card-bg); padding: 20px; border-radius: 12px; width: 100%; max-width: 400px; border: 1px solid var(--border); }
+
+        .auth-switch { text-align: center; margin-top: 15px; font-size: 0.9rem; color: var(--muted); cursor: pointer; }
+        .auth-switch span { color: var(--accent); text-decoration: underline; }
+        .admin-only { display: none !important; }
+        
+        .sub-section { margin-top: 25px; padding-top: 15px; border-top: 1px dashed var(--border); }
+    </style>
+</head>
+<body>
+
+    <!-- Loading Screen -->
+    <div id="loading-screen">
+        <div class="spinner"></div>
+        <h2 style="border:none; color:var(--accent); font-family:'Rye', serif;">FIRMA</h2>
+    </div>
+
+    <!-- Auth Container -->
+    <div id="auth-container">
+        <!-- Register -->
+        <div id="register-form" class="card">
+            <h2 class="auth-title">Registracija</h2>
+            <div class="input-group">
+                <label>Korisničko ime:</label>
+                <input type="text" id="reg-username" placeholder="Unesi ime">
+            </div>
+            <div class="input-group">
+                <label>Lozinka:</label>
+                <input type="password" id="reg-password" placeholder="Unesi lozinku">
+            </div>
+            <div class="input-group">
+                <label>Izaberi ulogu:</label>
+                <select id="reg-role">
+                    <option value="chatter">📱 Chatter</option>
+                    <option value="teren">🦹‍♂️ Na terenu</option>
+                </select>
+            </div>
+            <button class="btn" onclick="register()">Napravi Nalog</button>
+            <div class="auth-switch" onclick="switchAuth('login')">Imaš nalog? <span>Uloguj se</span></div>
+        </div>
+
+        <!-- Login -->
+        <div id="login-form" class="card" style="display:none;">
+            <h2 class="auth-title">Prijava</h2>
+            <div class="input-group">
+                <label>Korisničko ime:</label>
+                <input type="text" id="log-username" placeholder="Unesi ime">
+            </div>
+            <div class="input-group">
+                <label>Lozinka:</label>
+                <input type="password" id="log-password" placeholder="Unesi lozinku">
+            </div>
+            <button class="btn" onclick="login()">Uđi</button>
+            <div class="auth-switch" id="switch-to-reg" onclick="switchAuth('register')">Nemaš nalog? <span>Registruj se</span></div>
+        </div>
+    </div>
+
+    <!-- Glavna Aplikacija -->
+    <div id="app-container">
+        <header>
+            <div style="display:flex; align-items:center;">
+                <button class="logout-btn" onclick="logout()" title="Odjavi se">🚪</button>
+                <button class="settings-btn admin-target" onclick="otvoriModal('settings')">⚙️</button>
+            </div>
+            <div class="logo">FIRMA</div>
+            <button class="hamburger" onclick="toggleMenu()">☰</button>
+        </header>
+
+        <nav id="side-menu">
+            <button class="close-menu" onclick="toggleMenu()">×</button>
+            <div style="padding: 0 20px 15px 20px; color:var(--muted); font-size:0.9rem; border-bottom:1px solid var(--border);">
+                Korisnik: <b id="display-user" style="color:var(--accent);"></b>
+            </div>
+            <a href="#" onclick="nav('home')">🏠 Početna strana</a>
+            <a href="#" onclick="nav('obavestenja')">📢 Obaveštenja</a>
+            <a href="#" onclick="nav('kalkulator')">🧮 Kalkulator</a>
+            <a href="#" onclick="nav('zarada')">💰 Zarada</a>
+            <a href="#" onclick="nav('agenti')">👥 Agenti</a>
+            <a href="#" onclick="nav('uredjaji')">📱 Uređaji</a>
+        </nav>
+
+        <!-- POKETNA STRANA (Samo Brand i Slika) -->
+        <div id="home" class="page active">
+            <div class="brand-container">
+                <h1 class="brand-title">FIRMA</h1>
+                <img src="slika1.png" alt="SpongeBob" class="brand-img">
+            </div>
+        </div>
+
+        <!-- OBAVESTENJA (Svi vide, admin upravlja) -->
+        <div id="obavestenja" class="page">
+            <h2>📢 Oglasna Tabla</h2>
+            
+            <!-- Vidljivo samo Ministru -->
+            <div class="card admin-target" style="margin-bottom: 20px;">
+                <label>Napiši novo globalno obaveštenje:</label>
+                <textarea id="novo-obavestenje" rows="3" placeholder="Ovu poruku će odmah videti svi zaposleni kada se uloguju..."></textarea>
+                <button class="btn" onclick="objaviObavestenje()">Objavi svima</button>
+            </div>
+
+            <div id="obavestenja-lista"></div>
+        </div>
+
+        <!-- KALKULATOR (Sve računice na jednom mestu) -->
+        <div id="kalkulator" class="page">
+            <h2>🧮 Glavni Kalkulator Plata</h2>
+            <div class="card">
+                <div class="input-group">
+                    <label>Ukupna zarada (RSD):</label>
+                    <input type="number" id="calc-iznos" placeholder="Unesi iznos" oninput="racunaj()">
+                    <div class="eur-val" id="calc-eur">= 0.00 €</div>
+                </div>
+                <div class="input-group">
+                    <label>Izaberi Chattera:</label>
+                    <select id="calc-chater" onchange="racunaj()"></select>
+                </div>
+                <div class="input-group">
+                    <label>Broj radnika na terenu:</label>
+                    <select id="calc-radnici" onchange="racunaj()">
+                        <option value="1">Samo ja (1)</option>
+                        <option value="2">Ja i Kolega (2)</option>
+                        <option value="3" selected>Ja i 2 Kolege (3)</option>
+                    </select>
+                </div>
+                <div class="result-box" id="calc-rezultat"></div>
+                <button class="btn admin-target" onclick="dodajPlatu()">+ PROKNJIŽI PLATU</button>
+            </div>
+
+            <h2 class="sub-section">🔞 OF Podela (60% / 40%)</h2>
+            <div class="card">
+                <div class="input-group">
+                    <label>Izaberi Chatera:</label>
+                    <select id="of-chater"></select>
+                </div>
+                <div class="input-group">
+                    <label>Iznos za podelu (RSD):</label>
+                    <input type="number" id="of-iznos" placeholder="Unesi cifru" oninput="racunajOF()">
+                    <div class="eur-val" id="of-eur">= 0.00 €</div>
+                </div>
+                <div class="result-box" id="of-rezultat" style="display:none;">
+                    <div class="result-row highlight"><span>Meni (60%):</span><span id="of-ja">0</span></div>
+                    <div class="result-row"><span>Chateru (40%):</span><span id="of-on">0</span></div>
+                </div>
+                <button class="btn admin-target" onclick="proknjiziOF()">Proknjiži OF</button>
+            </div>
+
+            <h2 class="sub-section">💎 Kalkulator Vrednosti Nakita</h2>
+            <div class="card">
+                <div style="font-size: 0.8rem; color: var(--muted); margin-bottom: 12px; text-align: center;">
+                    🟡 Zlato: 8.500 RSD/g | ⚪ Srebro: 110 RSD/g
+                </div>
+                <div class="input-group">
+                    <label>Materijal:</label>
+                    <select id="nakit-tip" onchange="racunajNakit()">
+                        <option value="zlato">🟡 Zlato</option>
+                        <option value="srebro">⚪ Srebro</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>Gramaža (g):</label>
+                    <input type="number" id="nakit-grami" step="0.01" placeholder="Unesi grame" oninput="racunajNakit()">
+                </div>
+                <div class="result-box" id="nakit-rezultat" style="display:none;">
+                    <div class="result-row highlight"><span>Vrednost nakita:</span><span id="nakit-cena-rsd">0 RSD</span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ZARADA -->
+        <div id="zarada" class="page">
+            <h2>Stanje Zarade Firma</h2>
+            <div class="stats-grid">
+                <div class="stat-card"><span>24h</span><h3 id="stat-24h">0</h3><span id="stat-24h-eur">0 €</span></div>
+                <div class="stat-card"><span>7 Dana</span><h3 id="stat-7d">0</h3><span id="stat-7d-eur">0 €</span></div>
+                <div class="stat-card"><span>30 Dana</span><h3 id="stat-30d">0</h3><span id="stat-30d-eur">0 €</span></div>
+                <div class="stat-card"><span>Godina</span><h3 id="stat-365d">0</h3><span id="stat-365d-eur">0 €</span></div>
+            </div>
+            <button class="btn btn-outline" onclick="toggleDetalji()">Prikaži Analitiku & Grafikon</button>
+            
+            <div id="detalji-zarade" class="card" style="display:none; margin-top:15px;">
+                <canvas id="grafikon"></canvas>
+                <div id="istorija-lista" style="margin-top:15px; max-height:250px; overflow-y:auto; font-size:0.85rem; border-top:1px solid #333; padding-top:10px;"></div>
+            </div>
+        </div>
+
+        <!-- AGENTI -->
+        <div id="agenti" class="page">
+            <h2>Moji Agenti i Statusi</h2>
+            <div id="agenti-lista"></div>
+            <button class="fab admin-target" onclick="otvoriModal('agent')">+</button>
+        </div>
+
+        <!-- UREDJAJI -->
+        <div id="uredjaji" class="page">
+            <h2>Evidencija Telefona</h2>
+            <div id="uredjaji-lista"></div>
+            <button class="fab admin-target" onclick="otvoriModal('uredjaj')">+</button>
+        </div>
+    </div>
+
+    <!-- MODALI -->
+    <div id="modal-settings" class="modal-overlay">
+        <div class="modal">
+            <h2>Sistem Panel</h2>
+            <p style="color: var(--muted); font-size: 0.85rem; margin: 15px 0;">Brisanje kompletne baze podataka i reset svih parametara.</p>
+            <button class="btn btn-danger" onclick="resetujSve()">⚠️ RESETUJ SVE</button>
+            <button class="btn btn-outline" style="border:none; color:var(--muted);" onclick="zatvoriModal('settings')">Zatvori</button>
+        </div>
+    </div>
+
+    <div id="modal-agent" class="modal-overlay">
+        <div class="modal">
+            <h2>Ručni unos agenta</h2>
+            <div class="input-group">
+                <label>Ime zaposlenog:</label>
+                <input type="text" id="novi-agent-ime">
+            </div>
+            <div class="input-group">
+                <label>Uloga:</label>
+                <select id="novi-agent-uloga" onchange="toggleProcenatPolja()">
+                    <option value="📱 Chatter">📱 Chatter</option>
+                    <option value="🦹‍♂️ Na terenu">🦹‍♂️ Na terenu</option>
+                </select>
+            </div>
+            <div class="input-group" id="chatter-procenat-group">
+                <label>Procenat:</label>
+                <select id="novi-agent-procenat">
+                    <option value="10">10%</option>
+                    <option value="15">15%</option>
+                    <option value="20" selected>20%</option>
+                    <option value="25">25%</option>
+                    <option value="30">30%</option>
+                </select>
+            </div>
+            <button class="btn" onclick="sacuvajAgenta()">Dodaj</button>
+            <button class="btn btn-outline" style="border:none; color:var(--muted);" onclick="zatvoriModal('agent')">Odustani</button>
+        </div>
+    </div>
+
+    <div id="modal-uredjaj" class="modal-overlay">
+        <div class="modal">
+            <h2>Dodaj Uređaj u bazu</h2>
+            <div class="input-group">
+                <label>Model / Broj:</label>
+                <input type="text" id="novi-uredjaj-ime">
+            </div>
+            <div class="input-group">
+                <label>Tip mreže:</label>
+                <select id="novi-uredjaj-tip">
+                    <option value="Normal">Normal</option>
+                    <option value="Crypto">Crypto</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label>Status:</label>
+                <select id="novi-uredjaj-status">
+                    <option value="Free">Free</option>
+                    <option value="Reserved">Reserved</option>
+                </select>
+            </div>
+            <button class="btn" onclick="sacuvajUredjaj()">Dodaj telefon</button>
+            <button class="btn btn-outline" style="border:none; color:var(--muted);" onclick="zatvoriModal('uredjaj')">Odustani</button>
+        </div>
+    </div>
+
+    <script>
+        const KURS = 117.2;
+
+        // Glavna struktura baze
+        let db = {
+            users: JSON.parse(localStorage.getItem('m_users')) || [],
+            transakcije: JSON.parse(localStorage.getItem('m_transakcije')) || [],
+            agenti: JSON.parse(localStorage.getItem('m_agenti')) || [],
+            uredjaji: JSON.parse(localStorage.getItem('m_uredjaji')) || [],
+            obavestenja: JSON.parse(localStorage.getItem('m_obavestenja')) || []
+        };
+
+        let currentUser = null;
+        let deviceRegistered = localStorage.getItem('deviceRegistered') === 'true';
+
+        window.onload = () => {
+            // Prilagođavanje za Web Hosting (Simulacija mrežnog feed-a za obaveštenja da svi vide odmah)
+            sincObavestenjaSaMreze();
+            
+            setTimeout(() => {
+                document.getElementById('loading-screen').style.opacity = '0';
+                setTimeout(() => {
+                    document.getElementById('loading-screen').style.visibility = 'hidden';
+                    checkSession();
+                }, 400);
+            }, 1000);
+        };
+
+        // Funkcija koja obezbeđuje da kada postaviš sajt na internet, obaveštenja budu simulirano stabilna za sve posetioce
+        function sincObavestenjaSaMreze() {
+            let globalnaObavestenja = localStorage.getItem('global_firma_announcements');
+            if (globalnaObavestenja) {
+                db.obavestenja = JSON.parse(globalnaObavestenja);
+            }
+        }
+
+        function checkSession() {
+            let savedUser = sessionStorage.getItem('activeUser');
+            if (savedUser) {
+                currentUser = JSON.parse(savedUser);
+                pokreniAplikaciju();
+            } else {
+                prikaziAuth();
+            }
+        }
+
+        function prikaziAuth() {
+            document.getElementById('app-container').style.display = 'none';
+            document.getElementById('auth-container').style.display = 'block';
+            if(deviceRegistered) {
+                switchAuth('login');
+                document.getElementById('switch-to-reg').style.display = 'none';
+            } else {
+                switchAuth('register');
+            }
+        }
+
+        function switchAuth(type) {
+            if(type === 'login') {
+                document.getElementById('register-form').style.display = 'none';
+                document.getElementById('login-form').style.display = 'block';
+            } else {
+                document.getElementById('login-form').style.display = 'none';
+                document.getElementById('register-form').style.display = 'block';
+            }
+        }
+
+        function register() {
+            let user = document.getElementById('reg-username').value.trim();
+            let pass = document.getElementById('reg-password').value.trim();
+            let role = document.getElementById('reg-role').value;
+
+            if(!user || !pass) return alert("Popuni sva polja!");
+            if(user.toLowerCase() === 'griga') return alert("Korisničko ime rezervisano za Ministra!");
+            
+            let exists = db.users.find(u => u.username.toLowerCase() === user.toLowerCase());
+            if(exists) return alert("Ime je zauzeto!");
+
+            db.users.push({ username: user, password: pass, rola: role });
+            localStorage.setItem('m_users', JSON.stringify(db.users));
+            
+            let ulogaFormat = role === 'chatter' ? '📱 Chatter' : '🦹‍♂️ Na terenu';
+            let procenatDefault = role === 'chatter' ? 20 : 0;
+            
+            let agentPostoji = db.agenti.find(a => a.ime.toLowerCase() === user.toLowerCase());
+            if(!agentPostoji) {
+                db.agenti.push({ 
+                    id: Date.now(), ime: user, uloga: ulogaFormat, zarada: 0, kartoni: 0, procenat: procenatDefault, zvezdice: 0, isOnline: false 
+                });
+                sacuvajDB();
+            }
+
+            localStorage.setItem('deviceRegistered', 'true');
+            deviceRegistered = true;
+            alert("Nalog napravljen! Prijavi se.");
+            switchAuth('login');
+        }
+
+        function login() {
+            let user = document.getElementById('log-username').value.trim();
+            let pass = document.getElementById('log-password').value.trim();
+
+            if(user.toLowerCase() === 'griga') {
+                if(pass === '123') { currentUser = { username: 'griga', rola: 'admin' }; } 
+                else { return alert("Pogrešna lozinka Ministra!"); }
+            } else {
+                let found = db.users.find(u => u.username.toLowerCase() === user.toLowerCase() && u.password === pass);
+                if(found) { currentUser = found; } 
+                else { return alert("Netačni podaci!"); }
+            }
+
+            if(currentUser.username !== 'griga') {
+                let a = db.agenti.find(x => x.ime.toLowerCase() === currentUser.username.toLowerCase());
+                if(a) { a.isOnline = true; sacuvajDB(); }
+            }
+
+            sessionStorage.setItem('activeUser', JSON.stringify(currentUser));
+            pokreniAplikaciju();
+        }
+
+        function logout() {
+            if(currentUser && currentUser.username !== 'griga') {
+                let a = db.agenti.find(x => x.ime.toLowerCase() === currentUser.username.toLowerCase());
+                if(a) { a.isOnline = false; sacuvajDB(); }
+            }
+            sessionStorage.removeItem('activeUser');
+            location.reload();
+        }
+
+        function pokreniAplikaciju() {
+            document.getElementById('auth-container').style.display = 'none';
+            document.getElementById('app-container').style.display = 'block';
+            document.getElementById('display-user').innerText = currentUser.username + (currentUser.rola === 'admin' ? ' (Ministar)' : '');
+            primeniDozvole();
+            nav('home');
+        }
+
+        function primeniDozvole() {
+            let isAdmin = currentUser.rola === 'admin';
+            document.querySelectorAll('.admin-target').forEach(el => {
+                if(isAdmin) el.classList.remove('admin-only');
+                else el.classList.add('admin-only');
+            });
+        }
+
+        function proveriAdmina() {
+            if(currentUser.rola !== 'admin') {
+                alert("Pristup dozvoljen samo Ministru!");
+                return false;
+            }
+            return true;
+        }
+
+        function sacuvajDB() {
+            localStorage.setItem('m_transakcije', JSON.stringify(db.transakcije));
+            localStorage.setItem('m_agenti', JSON.stringify(db.agenti));
+            localStorage.setItem('m_uredjaji', JSON.stringify(db.uredjaji));
+            localStorage.setItem('m_obavestenja', JSON.stringify(db.obavestenja));
+            // Cuvanje u globalni kljuc za deljenje na hostingu
+            localStorage.setItem('global_firma_announcements', JSON.stringify(db.obavestenja));
+        }
+
+        function formiraj(broj) { return Math.round(broj).toLocaleString('sr-RS') + ' RSD'; }
+        function uEur(rsd) { return (rsd / KURS).toFixed(2) + ' €'; }
+
+        function toggleMenu() { document.getElementById('side-menu').classList.toggle('open'); }
+        
+        function nav(pageId) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById(pageId).classList.add('active');
+            if(document.getElementById('side-menu').classList.contains('open')) toggleMenu();
+            
+            if(pageId === 'kalkulator') { popuniChaterSelecte(); racunaj(); racunajOF(); racunajNakit(); }
+            if(pageId === 'agenti') renderAgenti();
+            if(pageId === 'uredjaji') renderUredjaji();
+            if(pageId === 'zarada') renderZarada();
+            if(pageId === 'obavestenja') { sincObavestenjaSaMreze(); renderObavestenja(); }
+            
+            primeniDozvole();
+        }
+
+        function otvoriModal(id) { 
+            if(id === 'settings' && !proveriAdmina()) return;
+            document.getElementById(`modal-${id}`).classList.add('open'); 
+            if(id === 'agent') toggleProcenatPolja();
+        }
+        function zatvoriModal(id) { document.getElementById(`modal-${id}`).classList.remove('open'); }
+
+        function resetujSve() {
+            if(!proveriAdmina()) return;
+            if(confirm("Da li sigurno resetuješ sve podatke zarađivanja i uređaja?")) {
+                localStorage.removeItem('m_transakcije');
+                localStorage.removeItem('m_agenti');
+                localStorage.removeItem('m_uredjaji');
+                localStorage.removeItem('m_obavestenja');
+                localStorage.removeItem('global_firma_announcements');
+                location.reload();
+            }
+        }
+
+        function toggleProcenatPolja() {
+            let uloga = document.getElementById('novi-agent-uloga').value;
+            document.getElementById('chatter-procenat-group').style.display = uloga.includes('Chatter') ? 'block' : 'none';
+        }
+
+        function popuniChaterSelecte() {
+            let chateri = db.agenti.filter(a => a.uloga.includes('Chatter'));
+            
+            let calcSel = document.getElementById('calc-chater');
+            if(calcSel) calcSel.innerHTML = chateri.length ? chateri.map(c => `<option value="${c.id}">${c.ime} (${c.procenat}%)</option>`).join('') : `<option value="">Nema unetih chatera</option>`;
+            
+            let ofSel = document.getElementById('of-chater');
+            if(ofSel) ofSel.innerHTML = chateri.length ? chateri.map(c => `<option value="${c.id}">${c.ime}</option>`).join('') : `<option value="">Nema unetih chatera</option>`;
+        }
+
+        // --- KALKULACIJE I MATEMATIKA ---
+        let trenutniObracun = null;
+
+        function racunaj() {
+            let calcIznosEl = document.getElementById('calc-iznos');
+            if(!calcIznosEl) return;
+            
+            let iznos = parseFloat(calcIznosEl.value) || 0;
+            document.getElementById('calc-eur').innerText = `= ${uEur(iznos)}`;
+            let brRadnika = parseInt(document.getElementById('calc-radnici').value);
+            let chId = document.getElementById('calc-chater').value;
+            let izabraniChater = db.agenti.find(x => x.id == chId);
+            let bProcenat = izabraniChater ? (izabraniChater.procenat || 20) : 20;
+            let primenjenBonus = false;
+
+            let provera = obracunajRastit(iznos, brRadnika, bProcenat);
+
+            if (provera.ministar > 50000) {
+                bProcenat += 7;
+                provera = obracunajRastit(iznos, brRadnika, bProcenat);
+                primenjenBonus = true;
+            }
+
+            trenutniObracun = { iznos, chater: provera.chater, ministar: provera.ministar, kolega1: provera.kolega1, kolega2: provera.kolega2, brRadnika, chaterId: chId, bonus: primenjenBonus };
+
+            let bonusTekst = primenjenBonus ? ` <span style="color:var(--success); font-weight:bold;">(+7% BONUS ⭐)</span>` : '';
+            let html = `<div class="result-row"><span>Chater (${bProcenat}%):${bonusTekst}</span><span>${formiraj(provera.chater)}</span></div>
+                        <div class="result-row highlight"><span>Ministar:</span><span>${formiraj(provera.ministar)}</span></div>`;
+            if(brRadnika > 1) html += `<div class="result-row"><span>Kolega 1:</span><span>${formiraj(provera.kolega1)}</span></div>`;
+            if(brRadnika > 2) html += `<div class="result-row"><span>Kolega 2:</span><span>${formiraj(provera.kolega2)}</span></div>`;
+            
+            document.getElementById('calc-rezultat').innerHTML = html;
+        }
+
+        function obracunajRastit(iznos, brRadnika, procenatChatera) {
+            let chater = iznos * (procenatChatera / 100);
+            let ostatak = iznos - chater;
+            let ministar = 0, kolega1 = 0, kolega2 = 0;
+            if (brRadnika === 1) { ministar = ostatak; }
+            else if (brRadnika === 2) { let mProc = (105 - procenatChatera) / 2; let kProc = mProc - 5; ministar = iznos * (mProc / 100); kolega1 = iznos * (kProc / 100); }
+            else if (brRadnika === 3) { let kProc = (95 - procenatChatera) / 3; let mProc = kProc + 5; ministar = iznos * (mProc / 100); kolega1 = iznos * (kProc / 100); kolega2 = iznos * (kProc / 100); }
+            return { chater, ministar, kolega1, kolega2 };
+        }
+
+        function dodajPlatu() {
+            if(!proveriAdmina()) return;
+            if(!trenutniObracun || trenutniObracun.iznos <= 0) return alert("Unesi iznos!");
+            
+            db.transakcije.push({ id: Date.now(), vreme: new Date().toISOString(), tip: 'Plata', ukupno: trenutniObracun.iznos, ministar: trenutniObracun.ministar });
+            if (trenutniObracun.chaterId) {
+                let agent = db.agenti.find(x => x.id == trenutniObracun.chaterId);
+                if (agent) { agent.zarada += trenutniObracun.chater; if (trenutniObracun.bonus) agent.zvezdice = (agent.zvezdice || 0) + 1; }
+            }
+            sacuvajDB(); 
+            alert("Plata evidentirana!"); 
+            document.getElementById('calc-iznos').value = ''; 
+            trenutniObracun = null; 
+            racunaj();
+        }
+
+        // --- LIVE OBAVESTENJA ---
+        function renderObavestenja() {
+            let isAdmin = currentUser.rola === 'admin';
+            let div = document.getElementById('obavestenja-lista');
+            if(!div) return;
+            
+            if(db.obavestenja.length === 0) {
+                div.innerHTML = `<p style="color:var(--muted); text-align:center; padding:30px;">Trenutno nema aktivnih zvaničnih obaveštenja.</p>`;
+                return;
+            }
+            div.innerHTML = db.obavestenja.slice().reverse().map(o => `
+                <div class="card" style="border-left:4px solid var(--accent); background: rgba(35,35,35,0.7);">
+                    <div style="font-size:0.75rem; color:var(--muted); margin-bottom:6px; display:flex; justify-content:space-between;">
+                        <span>📢 VAŽNO SAOPŠTENJE</span>
+                        <span>${new Date(o.vreme).toLocaleString('sr-RS')}</span>
+                    </div>
+                    <div style="font-size:1.05rem; white-space:pre-wrap; line-height:1.4; color:#fff;">${o.tekst}</div>
+                    ${isAdmin ? `<button class="btn btn-danger btn-small" style="margin-top:12px; padding:4px 10px;" onclick="obrisiObavestenje(${o.id})">Ukloni poruku</button>` : ''}
+                </div>
+            `).join('');
+        }
+
+        function objaviObavestenje() {
+            if(!proveriAdmina()) return;
+            let tekst = document.getElementById('novo-obavestenje').value.trim();
+            if(!tekst) return alert("Tekst ne može biti prazan!");
+            
+            db.obavestenja.push({ id: Date.now(), vreme: new Date().toISOString(), tekst: tekst });
+            sacuvajDB(); 
+            document.getElementById('novo-obavestenje').value = ''; 
+            renderObavestenja();
+        }
+
+        function obrisiObavestenje(id) {
+            if(!proveriAdmina()) return;
+            if(confirm("Ukloniti ovo obaveštenje za sve zaposlene?")) {
+                db.obavestenja = db.obavestenja.filter(o => o.id !== id); 
+                sacuvajDB(); 
+                renderObavestenja();
+            }
+        }
+
+        // --- ZARADA I STATISTIKA ---
+        let chartInstanca = null;
+        function renderZarada() {
+            let sada = new Date();
+            let sum24=0, sum7=0, sum30=0, sum365=0;
+            db.transakcije.forEach(t => {
+                let diff = (sada - new Date(t.vreme)) / (1000*60*60*24);
+                if(diff <= 1) sum24 += t.ministar; if(diff <= 7) sum7 += t.ministar; if(diff <= 30) sum30 += t.ministar; if(diff <= 365) sum365 += t.ministar;
+            });
+            document.getElementById('stat-24h').innerText = formiraj(sum24); document.getElementById('stat-24h-eur').innerText = uEur(sum24);
+            document.getElementById('stat-7d').innerText = formiraj(sum7); document.getElementById('stat-7d-eur').innerText = uEur(sum7);
+            document.getElementById('stat-30d').innerText = formiraj(sum30); document.getElementById('stat-30d-eur').innerText = uEur(sum30);
+            document.getElementById('stat-365d').innerText = formiraj(sum365); document.getElementById('stat-365d-eur').innerText = uEur(sum365);
+        }
+
+        function toggleDetalji() {
+            let div = document.getElementById('detalji-zarade');
+            if(div.style.display === 'none') { div.style.display = 'block'; iscrtajGrafikon(); } else { div.style.display = 'none'; }
+        }
+
+        function iscrtajGrafikon() {
+            let isAdmin = currentUser.rola === 'admin';
+            let lista = document.getElementById('istorija-lista');
+            lista.innerHTML = db.transakcije.slice().reverse().map(t => 
+                `<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; border-bottom:1px solid #222; padding-bottom:4px;">
+                    <span style="color:var(--muted)">${new Date(t.vreme).toLocaleDateString()} (${t.tip})</span>
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <span style="color:var(--accent)">+${formiraj(t.ministar)}</span>
+                        ${isAdmin ? `<button class="btn btn-danger btn-small" style="padding:1px 5px; font-size:0.7rem;" onclick="obrisiTransakciju(${t.id})">🗑️</button>` : ''}
+                    </div>
+                </div>`
+            ).join('');
+
+            let labele = db.transakcije.slice(-7).map(t => new Date(t.vreme).toLocaleDateString('sr').slice(0,5));
+            let podaci = db.transakcije.slice(-7).map(t => t.ministar);
+            if(chartInstanca) chartInstanca.destroy();
+            let ctx = document.getElementById('grafikon').getContext('2d');
+            chartInstanca = new Chart(ctx, { type: 'bar', data: { labels: labele.length ? labele : ['Prazno'], datasets: [{ label: 'Zarada Ministra (Zadnjih 7 unosa)', data: podaci, backgroundColor: '#d4af37' }] }, options: { responsive: true } });
+        }
+
+        function obrisiTransakciju(id) {
+            if(!proveriAdmina()) return;
+            if(confirm("Obrisati stavku iz istorije?")) { db.transakcije = db.transakcije.filter(t => t.id !== id); sacuvajDB(); renderZarada(); iscrtajGrafikon(); }
+        }
+
+        // --- AGENTI UPRAVLJANJE ---
+        function renderAgenti() {
+            let isAdmin = currentUser.rola === 'admin';
+            let div = document.getElementById('agenti-lista');
+            div.innerHTML = db.agenti.map(a => {
+                let pInfo = a.uloga.includes('Chatter') ? ` (${a.procenat}%)` : '';
+                let krug = a.isOnline ? '<span style="color:#2ed573; text-shadow:0 0 5px #2ed573;">🟢</span>' : '<span style="color:#ff4757;">🔴</span>';
+                
+                return `
+                <div class="list-item">
+                    <div class="item-header">
+                        <div class="item-title">${krug} ${a.uloga}${pInfo} <span style="color:var(--accent)">${a.ime}</span> ${'⭐'.repeat(a.zvezdice||0)}</div>
+                        <div style="color:var(--accent); font-size:0.85rem;">Kartoni: ${'🟨'.repeat(a.kartoni)}</div>
+                    </div>
+                    <div style="font-size:0.85rem; color:var(--muted)">Ukupno isplaćeno: <span style="color:var(--success)">${formiraj(a.zarada)}</span></div>
+                    ${isAdmin ? `
+                    <div class="action-row">
+                        <button class="btn btn-small btn-outline" onclick="dodajKarton(${a.id})">+ Kazneni Žuti</button>
+                        <button class="btn btn-small btn-outline" onclick="platiAgenta(${a.id})">+ Isplati vanredno</button>
+                        <button class="btn btn-small btn-danger" style="margin-left:auto;" onclick="obrisiAgenta(${a.id})">🗑️</button>
+                    </div>` : ''}
+                </div>`}).join('');
+        }
+
+        function dodajKarton(id) {
+            if(!proveriAdmina()) return;
+            let a = db.agenti.find(x => x.id === id);
+            a.kartoni++;
+            if(a.kartoni >= 3) { alert(`Agent ${a.ime} sakuplja 3 žuta kartona i biva uklonjen sa sistema.`); db.agenti = db.agenti.filter(x => x.id !== id); }
+            sacuvajDB(); renderAgenti();
+        }
+
+        function platiAgenta(id) { if(!proveriAdmina()) return; let iznos = prompt("Unesi sumu za isplatu (RSD):"); if(iznos && !isNaN(iznos)) { db.agenti.find(x => x.id === id).zarada += parseFloat(iznos); sacuvajDB(); renderAgenti(); } }
+        function obrisiAgenta(id) { if(!proveriAdmina()) return; if(confirm("Izbrisati agenta sa liste?")) { db.agenti = db.agenti.filter(x => x.id !== id); sacuvajDB(); renderAgenti(); } }
+
+        function sacuvajAgenta() {
+            if(!proveriAdmina()) return;
+            let ime = document.getElementById('novi-agent-ime').value.trim();
+            let uloga = document.getElementById('novi-agent-uloga').value;
+            let p = uloga.includes('Chatter') ? parseInt(document.getElementById('novi-agent-procenat').value) : 0;
+            if(!ime) return;
+            db.agenti.push({ id: Date.now(), ime, uloga, zarada: 0, kartoni: 0, procenat: p, zvezdice: 0, isOnline: false });
+            sacuvajDB(); zatvoriModal('agent'); document.getElementById('novi-agent-ime').value = ''; renderAgenti();
+        }
+
+        // --- TELEFONI / UREDJAJI ---
+        function renderUredjaji() {
+            let isAdmin = currentUser.rola === 'admin';
+            let dis = isAdmin ? '' : 'disabled';
+            let div = document.getElementById('uredjaji-lista');
+            div.innerHTML = `<div style="margin-bottom:12px; color:var(--muted); font-size:0.85rem;">Evidentirano telefona: <b>${db.uredjaji.length}</b></div>` + 
+            db.uredjaji.map(u => `
+                <div class="list-item">
+                    <div class="item-header">
+                        <div class="item-title">📱 ${u.ime}</div>
+                        ${isAdmin ? `<button class="btn btn-small btn-danger" onclick="obrisiUredjaj(${u.id})">🗑️</button>` : ''}
+                    </div>
+                    <div class="toggle-group">
+                        <button class="toggle-btn ${u.tip==='Normal'?'active':''}" ${dis} onclick="setUredjaj(${u.id},'tip','Normal')">Normal</button>
+                        <button class="toggle-btn ${u.tip==='Crypto'?'active':''}" ${dis} onclick="setUredjaj(${u.id},'tip','Crypto')">Crypto</button>
+                    </div>
+                    <div class="toggle-group">
+                        <button class="toggle-btn ${u.status==='Free'?'active':''}" ${dis} onclick="setUredjaj(${u.id},'status','Free')">Free</button>
+                        <button class="toggle-btn ${u.status==='Reserved'?'active':''}" ${dis} onclick="setUredjaj(${u.id},'status','Reserved')">Reserved</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function setUredjaj(id, p, v) { if(!proveriAdmina()) return; db.uredjaji.find(x => x.id === id)[p] = v; sacuvajDB(); renderUredjaji(); }
+        function obrisiUredjaj(id) { if(!proveriAdmina()) return; if(confirm("Obrisati telefon?")) { db.uredjaji = db.uredjaji.filter(x => x.id !== id); sacuvajDB(); renderUredjaji(); } }
+        function sacuvajUredjaj() {
+            if(!proveriAdmina()) return;
+            let ime = document.getElementById('novi-uredjaj-ime').value.trim(); if(!ime) return;
+            db.uredjaji.push({ id: Date.now(), ime, tip: document.getElementById('novi-uredjaj-tip').value, status: document.getElementById('novi-uredjaj-status').value });
+            sacuvajDB(); zatvoriModal('uredjaj'); document.getElementById('novi-uredjaj-ime').value = ''; renderUredjaji();
+        }
+
+        // --- OF I NAKIT RAČUNICE ---
+        function racunajOF() {
+            let el = document.getElementById('of-iznos');
+            if(!el) return;
+            let iznos = parseFloat(el.value) || 0;
+            document.getElementById('of-eur').innerText = `= ${uEur(iznos)}`;
+            if(iznos > 0) {
+                document.getElementById('of-rezultat').style.display = 'block';
+                document.getElementById('of-ja').innerText = formiraj(iznos * 0.60);
+                document.getElementById('of-on').innerText = formiraj(iznos * 0.40);
+            } else { document.getElementById('of-rezultat').style.display = 'none'; }
+        }
+
+        function proknjiziOF() {
+            if(!proveriAdmina()) return;
+            let iznos = parseFloat(document.getElementById('of-iznos').value) || 0; 
+            let chId = document.getElementById('of-chater').value;
+            if(iznos <= 0 || !chId) return alert("Popuni iznos i odaberi Chattera!");
+            
+            db.transakcije.push({ id: Date.now(), vreme: new Date().toISOString(), tip: 'OF Podela', ukupno: iznos, ministar: iznos * 0.60 });
+            let ch = db.agenti.find(a => a.id == chId); 
+            if(ch) ch.zarada += iznos * 0.40;
+            
+            sacuvajDB(); 
+            alert("OF zarada uspešno zabeležena!"); 
+            document.getElementById('of-iznos').value = ''; 
+            racunajOF();
+        }
+
+        function racunajNakit() {
+            let tipEl = document.getElementById('nakit-tip');
+            if(!tipEl) return;
+            let tip = tipEl.value; 
+            let grami = parseFloat(document.getElementById('nakit-grami').value) || 0;
+            let cena = (tip === 'zlato') ? 8500 : 110;
+            if(grami > 0) { 
+                document.getElementById('nakit-rezultat').style.display = 'block'; 
+                document.getElementById('nakit-cena-rsd').innerText = formiraj(grami * cena); 
+            } else { document.getElementById('nakit-rezultat').style.display = 'none'; }
+        }
+    </script>
+</body>
+</html>
